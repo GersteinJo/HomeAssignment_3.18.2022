@@ -26,6 +26,12 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <map>
+#include "json.hpp"
+#include <fstream>
+#include <iomanip>
+#include <filesystem>
+
 
 
 template <typename Iterator, typename T>
@@ -87,17 +93,31 @@ int main() {
     std::vector<int> test_sequence(100u);
     std::iota(test_sequence.begin(), test_sequence.end(), 0);
 
-
-    int N = 19; //num of streams
+    int num_sessions = 10;
+    int N = 100; //num of streams
     Timer<std::chrono::microseconds> myTimer;
-    std::vector<int> Plot_num_time;
-    for(int i = 1; i<N+1; i++)
+    //std::vector<int> Plot_num_time;
+    std::multimap<int, int> Plot_num_time;
+
+
+    for(int j = 0; j < num_sessions; j++)
     {
-        myTimer.Start();
-        auto result = parallel_accumulate(std::begin(test_sequence), std::end(test_sequence), 0, i);
-        int time_i = myTimer.Stop();
-        Plot_num_time.push_back(time_i);
-        std::cout<<result<<"\n";
+        for(int i = 1; i<N+1; i++)
+        {
+            myTimer.Start();
+            auto result = parallel_accumulate(std::begin(test_sequence), std::end(test_sequence), 0, i);
+            int time_i = myTimer.Stop();
+            Plot_num_time.insert(std::make_pair(i,time_i));
+//            std::cout<<result<<"\n";
+        }
+        std::cout<<"*";
     }
-    for(int i = 0; i < N; i++) std::cout<<i+1<<" "<<Plot_num_time[i]<<"\n";
+//    for(auto[key,value]:Plot_num_time) std::cout<<key<<" "<<value<<"\n";
+    nlohmann::json out_data(Plot_num_time);
+    std::filesystem::path home_dir("..");
+    std::fstream my_file_stream(std::filesystem::absolute(home_dir/"Time(num of streams).json"),
+                                std::ios::out);
+    my_file_stream<<std::setw(8)<<out_data<<"\n";
+    my_file_stream.close();
+
 }
